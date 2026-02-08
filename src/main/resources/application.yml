@@ -7,7 +7,6 @@ spring:
   application:
     name: nathbit-business-core
 
-  # PostgreSQL (Multi-tenant)
   datasource:
     url: jdbc:postgresql://localhost:5432/nathbitpos_v3
     username: postgres
@@ -28,13 +27,11 @@ spring:
         format_sql: true
         default_schema: public
 
-  # MongoDB (Auditoría)
   data:
     mongodb:
       uri: mongodb://localhost:27017/nathbit_audit
       auto-index-creation: true
 
-# Configuración de JWT
 jwt:
   secret: your-secret-key-change-this-in-production
   device-token:
@@ -42,7 +39,6 @@ jwt:
   bearer-token:
     expiration: 3600000   # 1 hora
 
-# Logging
 logging:
   level:
     root: INFO
