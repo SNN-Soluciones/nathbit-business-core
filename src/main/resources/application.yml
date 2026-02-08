@@ -1,0 +1,51 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /api/business
+
+spring:
+  application:
+    name: nathbit-business-core
+
+  # PostgreSQL (Multi-tenant)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/nathbitpos_v3
+    username: postgres
+    password: your_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: public
+
+  # MongoDB (Auditoría)
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/nathbit_audit
+      auto-index-creation: true
+
+# Configuración de JWT
+jwt:
+  secret: your-secret-key-change-this-in-production
+  device-token:
+    expiration: 86400000  # 24 horas
+  bearer-token:
+    expiration: 3600000   # 1 hora
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.nathbit.business: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

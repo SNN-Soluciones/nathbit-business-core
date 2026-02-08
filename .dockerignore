@@ -1,0 +1,33 @@
+# Build artifacts
+build/
+.gradle/
+bin/
+out/
+target/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+
+# Temporal
+tmp/
+temp/
+*.tmp
+
+# Documentation
+README.md
+docs/
