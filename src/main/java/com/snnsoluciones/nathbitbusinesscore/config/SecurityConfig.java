@@ -60,22 +60,22 @@ public class SecurityConfig {
         log.info("⚙️ Configurando CORS...");
 
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // 🔥 Permitir orígenes del frontend
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:4200",       // Angular dev
-            "https://localhost",            // Capacitor Android/iOS
-            "capacitor://localhost",        // Capacitor alternativo
-            "ionic://localhost",            // Ionic alternativo
-            "https://app.nathbit.com",     // Producción (si existe)
-            "*"                             // 🔥 SOLO para desarrollo - quitar en prod
+
+        // 🔥 CAMBIO: Usar allowedOriginPatterns en lugar de allowedOrigins
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:*",       // Angular dev (cualquier puerto)
+            "https://localhost",         // Capacitor Android/iOS
+            "capacitor://localhost",     // Capacitor alternativo
+            "ionic://localhost",         // Ionic alternativo
+            "https://app.nathbit.com",  // Producción
+            "*"                          // 🔥 Permite cualquier origen en dev
         ));
-        
+
         // Permitir todos los métodos HTTP
         configuration.setAllowedMethods(Arrays.asList(
             "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
-        
+
         // Permitir todos los headers
         configuration.setAllowedHeaders(Arrays.asList(
             "Authorization",
@@ -86,24 +86,24 @@ public class SecurityConfig {
             "Access-Control-Request-Method",
             "Access-Control-Request-Headers"
         ));
-        
+
         // Exponer headers
         configuration.setExposedHeaders(Arrays.asList(
             "Authorization",
             "X-Device-Token"
         ));
-        
+
         // Permitir credenciales
         configuration.setAllowCredentials(true);
-        
+
         // Max age para preflight
         configuration.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-        
-        log.info("✅ CORS configurado para orígenes: {}", configuration.getAllowedOrigins());
-        
+
+        log.info("✅ CORS configurado");
+
         return source;
     }
 }
