@@ -108,17 +108,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long>,
         """)
     Page<Producto> buscarPorCategoria(@Param("categoriaId") Long categoriaId, Pageable pageable);
 
-    /**
-     * Buscar productos con impuesto específico
-     */
-    @Query("""
-        SELECT DISTINCT p FROM Producto p 
-        JOIN p.impuestos i
-        WHERE i.codigoTarifaIva = :codigoTarifa
-        AND p.activo = true
-        AND i.activo = true
-        """)
-    Page<Producto> buscarPorImpuesto(@Param("codigoTarifa") String codigoTarifa, Pageable pageable);
+    // ❌ ELIMINADO: buscarPorImpuesto() - No tenemos relación con impuestos
 
     /**
      * Contar productos activos
