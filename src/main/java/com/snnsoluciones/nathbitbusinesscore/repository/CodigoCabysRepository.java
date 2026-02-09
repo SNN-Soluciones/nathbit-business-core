@@ -17,15 +17,18 @@ public interface CodigoCabysRepository extends JpaRepository<CodigoCAByS, Long> 
 
     /**
      * Buscar códigos CAByS activos con filtros opcionales
+     * 
+     * NOTA: Usamos nativeQuery con CAST explícito para evitar problemas
+     * de tipo cuando los parámetros son null
      */
-    @Query("""
-        SELECT c FROM CodigoCAByS c
+    @Query(value = """
+        SELECT * FROM public.codigos_cabys c
         WHERE c.activo = true
-        AND (:descripcion IS NULL OR LOWER(c.descripcion) LIKE LOWER(CONCAT('%', :descripcion, '%')))
-        AND (:codigo IS NULL OR c.codigo LIKE CONCAT(:codigo, '%'))
-        AND (:impuesto IS NULL OR c.impuestoSugerido = :impuesto)
+        AND (CAST(:descripcion AS TEXT) IS NULL OR LOWER(c.descripcion) LIKE LOWER(CONCAT('%', :descripcion, '%')))
+        AND (CAST(:codigo AS TEXT) IS NULL OR c.codigo LIKE CONCAT(:codigo, '%'))
+        AND (CAST(:impuesto AS TEXT) IS NULL OR c.impuesto_sugerido = :impuesto)
         ORDER BY c.codigo ASC
-        """)
+        """, nativeQuery = true)
     List<CodigoCAByS> buscarConFiltros(
         @Param("descripcion") String descripcion,
         @Param("codigo") String codigo,
