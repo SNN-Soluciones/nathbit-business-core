@@ -126,11 +126,7 @@ public class ProductoDTO {
                         .map(CategoriaProductoDTO::fromEntity)
                         .collect(Collectors.toList())
                     : null)
-                .impuestos(entity.getImpuestos() != null
-                    ? entity.getImpuestos().stream()
-                        .map(ProductoImpuestoDTO::fromEntity)
-                        .collect(Collectors.toList())
-                    : null)
+                .impuestos(null)  // Se llenará en ProductoService
                 .build();
     }
 }

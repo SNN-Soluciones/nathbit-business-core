@@ -11,14 +11,6 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Productos del tenant.
- * Tabla: tenant_X.productos
- * 
- * Requiere:
- * - Device Token: Para acceso al tenant
- * - Bearer Token: Para auditar quién crea/modifica
- */
 @Entity
 @Table(name = "productos", indexes = {
     @Index(name = "idx_productos_codigo_interno", columnList = "codigo_interno"),
@@ -37,43 +29,33 @@ public class Producto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ==================== CÓDIGOS ====================
-    
     @Column(name = "codigo_interno", nullable = false, length = 20)
     private String codigoInterno;
 
     @Column(name = "codigo_barras", length = 30)
     private String codigoBarras;
 
-    // ==================== INFO BÁSICA ====================
-    
     @Column(name = "nombre", nullable = false, length = 200)
     private String nombre;
 
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
-    // ==================== RELACIONES ====================
-    
     @Column(name = "empresa_cabys_id")
     private Long empresaCabysId;
 
     @Column(name = "familia_id")
     private Long familiaId;
 
-    // ==================== TIPO Y CONTROL ====================
-    
     @Column(name = "tipo", nullable = false, length = 50)
-    private String tipo; // VENTA, MATERIA_PRIMA, MIXTO, COMBO, COMPUESTO
+    private String tipo;
 
     @Column(name = "tipo_inventario", nullable = false, length = 50)
-    private String tipoInventario; // SIMPLE, RECETA, NINGUNO
+    private String tipoInventario;
 
     @Column(name = "zona_preparacion", nullable = false, length = 50)
-    private String zonaPreparacion; // NINGUNA, COCINA, BAR, etc
+    private String zonaPreparacion;
 
-    // ==================== PRECIOS ====================
-    
     @Column(name = "precio_venta", nullable = false, precision = 18, scale = 5)
     private BigDecimal precioVenta;
 
@@ -86,8 +68,6 @@ public class Producto {
     @Column(name = "ultimo_precio_compra", precision = 18, scale = 5)
     private BigDecimal ultimoPrecioCompra;
 
-    // ==================== UNIDADES ====================
-    
     @Column(name = "unidad_medida", nullable = false, length = 255)
     private String unidadMedida;
 
@@ -100,8 +80,6 @@ public class Producto {
     @Column(name = "unidad_medida_uso", length = 50)
     private String unidadMedidaUso;
 
-    // ==================== FACTORES ====================
-    
     @Column(name = "factor_conversion", precision = 10, scale = 4)
     private BigDecimal factorConversion;
 
@@ -109,8 +87,6 @@ public class Producto {
     @Builder.Default
     private BigDecimal factorConversionReceta = BigDecimal.ONE;
 
-    // ==================== FLAGS ====================
-    
     @Column(name = "activo", nullable = false)
     @Builder.Default
     private Boolean activo = true;
@@ -135,8 +111,6 @@ public class Producto {
     @Builder.Default
     private Boolean requierePersonalizacion = false;
 
-    // ==================== IMÁGENES ====================
-    
     @Column(name = "imagen_url", length = 500)
     private String imagenUrl;
 
@@ -149,8 +123,6 @@ public class Producto {
     @Column(name = "thumbnail_key", length = 255)
     private String thumbnailKey;
 
-    // ==================== FECHAS ====================
-    
     @Column(name = "fecha_ultima_compra")
     private LocalDateTime fechaUltimaCompra;
 
@@ -160,8 +132,7 @@ public class Producto {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    // ==================== RELACIONES MANY-TO-MANY ====================
-    
+    // ✅ SOLO RELACIÓN CON CATEGORÍAS (ManyToMany funciona bien)
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "producto_categoria",
@@ -171,12 +142,9 @@ public class Producto {
     @Builder.Default
     private Set<CategoriaProducto> categorias = new HashSet<>();
 
-    @OneToMany(mappedBy = "productoId", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<ProductoImpuesto> impuestos = new HashSet<>();
+    // ❌ ELIMINADA: Relación inversa con impuestos
+    // Los impuestos se cargan por separado usando ProductoImpuestoRepository.findByProductoId()
 
-    // ==================== LIFECYCLE ====================
-    
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
