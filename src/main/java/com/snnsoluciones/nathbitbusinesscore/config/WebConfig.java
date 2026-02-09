@@ -19,6 +19,6 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         // Registrar el TenantInterceptor para todas las rutas
         registry.addInterceptor(tenantInterceptor)
-                .addPathPatterns("/v2/api/business**");  // Solo rutas del negocio
+                .addPathPatterns("/**");  // Solo rutas del negocio
     }
 }
