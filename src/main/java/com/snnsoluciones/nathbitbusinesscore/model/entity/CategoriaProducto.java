@@ -44,6 +44,7 @@ public class CategoriaProducto {
     private Integer orden;
 
     @Column(name = "activo", nullable = false)
+    @Builder.Default
     private Boolean activo = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)

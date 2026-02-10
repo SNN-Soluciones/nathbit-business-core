@@ -3,6 +3,11 @@ package com.snnsoluciones.nathbitbusinesscore.service;
 import com.snnsoluciones.nathbitbusinesscore.exception.BusinessException;
 import com.snnsoluciones.nathbitbusinesscore.model.dto.productos.*;
 import com.snnsoluciones.nathbitbusinesscore.model.entity.Producto;
+import com.snnsoluciones.nathbitbusinesscore.model.enums.TipoInventario;
+import com.snnsoluciones.nathbitbusinesscore.model.enums.TipoProducto;
+import com.snnsoluciones.nathbitbusinesscore.model.enums.UnidadMedida;
+import com.snnsoluciones.nathbitbusinesscore.model.enums.ZonaPreparacion;
+import com.snnsoluciones.nathbitbusinesscore.model.enums.mh.Moneda;
 import com.snnsoluciones.nathbitbusinesscore.repository.ProductoRepository;
 import com.snnsoluciones.nathbitbusinesscore.service.handler.*;
 import lombok.RequiredArgsConstructor;
@@ -60,18 +65,18 @@ public class ProductoService {
             .descripcion(dto.getDescripcion())
             .empresaCabysId(dto.getEmpresaCabysId())
             .familiaId(dto.getFamiliaId())
-            .tipo(Producto.TipoProducto.valueOf(dto.getTipo()))
-            .tipoInventario(Producto.TipoInventario.valueOf(dto.getTipoInventario()))
-            .zonaPreparacion(Producto.ZonaPreparacion.valueOf(dto.getZonaPreparacion()))
+            .tipo(TipoProducto.valueOf(dto.getTipo()))
+            .tipoInventario(TipoInventario.valueOf(dto.getTipoInventario()))
+            .zonaPreparacion(ZonaPreparacion.valueOf(dto.getZonaPreparacion()))
             .precioVenta(dto.getPrecioVenta())
             .precioBase(dto.getPrecioBase())
             .precioCompra(dto.getPrecioCompra())
-            .unidadMedida(Producto.UnidadMedida.valueOf(dto.getUnidadMedida()))
-            .moneda(Producto.Moneda.valueOf(dto.getMoneda()))
+            .unidadMedida(UnidadMedida.valueOf(dto.getUnidadMedida()))
+            .moneda(Moneda.valueOf(dto.getMoneda()))
             .unidadMedidaCompra(dto.getUnidadMedidaCompra() != null 
-                ? Producto.UnidadMedida.valueOf(dto.getUnidadMedidaCompra()) : null)
+                ? UnidadMedida.valueOf(dto.getUnidadMedidaCompra()) : null)
             .unidadMedidaUso(dto.getUnidadMedidaUso() != null 
-                ? Producto.UnidadMedida.valueOf(dto.getUnidadMedidaUso()) : null)
+                ? UnidadMedida.valueOf(dto.getUnidadMedidaUso()) : null)
             .factorConversion(dto.getFactorConversion())
             .factorConversionReceta(dto.getFactorConversionReceta())
             .esServicio(dto.getEsServicio())
@@ -385,16 +390,16 @@ public class ProductoService {
         if (dto.getDescripcion() != null) producto.setDescripcion(dto.getDescripcion());
         if (dto.getEmpresaCabysId() != null) producto.setEmpresaCabysId(dto.getEmpresaCabysId());
         if (dto.getFamiliaId() != null) producto.setFamiliaId(dto.getFamiliaId());
-        if (dto.getTipo() != null) producto.setTipo(Producto.TipoProducto.valueOf(dto.getTipo()));
-        if (dto.getTipoInventario() != null) producto.setTipoInventario(Producto.TipoInventario.valueOf(dto.getTipoInventario()));
-        if (dto.getZonaPreparacion() != null) producto.setZonaPreparacion(Producto.ZonaPreparacion.valueOf(dto.getZonaPreparacion()));
+        if (dto.getTipo() != null) producto.setTipo(TipoProducto.valueOf(dto.getTipo()));
+        if (dto.getTipoInventario() != null) producto.setTipoInventario(TipoInventario.valueOf(dto.getTipoInventario()));
+        if (dto.getZonaPreparacion() != null) producto.setZonaPreparacion(ZonaPreparacion.valueOf(dto.getZonaPreparacion()));
         if (dto.getPrecioVenta() != null) producto.setPrecioVenta(dto.getPrecioVenta());
         if (dto.getPrecioBase() != null) producto.setPrecioBase(dto.getPrecioBase());
         if (dto.getPrecioCompra() != null) producto.setPrecioCompra(dto.getPrecioCompra());
-        if (dto.getUnidadMedida() != null) producto.setUnidadMedida(Producto.UnidadMedida.valueOf(dto.getUnidadMedida()));
-        if (dto.getMoneda() != null) producto.setMoneda(Producto.Moneda.valueOf(dto.getMoneda()));
-        if (dto.getUnidadMedidaCompra() != null) producto.setUnidadMedidaCompra(Producto.UnidadMedida.valueOf(dto.getUnidadMedidaCompra()));
-        if (dto.getUnidadMedidaUso() != null) producto.setUnidadMedidaUso(Producto.UnidadMedida.valueOf(dto.getUnidadMedidaUso()));
+        if (dto.getUnidadMedida() != null) producto.setUnidadMedida(UnidadMedida.valueOf(dto.getUnidadMedida()));
+        if (dto.getMoneda() != null) producto.setMoneda(Moneda.valueOf(dto.getMoneda()));
+        if (dto.getUnidadMedidaCompra() != null) producto.setUnidadMedidaCompra(UnidadMedida.valueOf(dto.getUnidadMedidaCompra()));
+        if (dto.getUnidadMedidaUso() != null) producto.setUnidadMedidaUso(UnidadMedida.valueOf(dto.getUnidadMedidaUso()));
         if (dto.getFactorConversion() != null) producto.setFactorConversion(dto.getFactorConversion());
         if (dto.getFactorConversionReceta() != null) producto.setFactorConversionReceta(dto.getFactorConversionReceta());
         if (dto.getEsServicio() != null) producto.setEsServicio(dto.getEsServicio());

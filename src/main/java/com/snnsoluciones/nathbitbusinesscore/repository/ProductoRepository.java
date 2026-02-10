@@ -1,132 +1,63 @@
 package com.snnsoluciones.nathbitbusinesscore.repository;
 
 import com.snnsoluciones.nathbitbusinesscore.model.entity.Producto;
+import com.snnsoluciones.nathbitbusinesscore.model.enums.TipoProducto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
-/**
- * Repositorio para Productos.
- * Accede a tenant_X.productos (schema dinámico vía SET search_path)
- */
 @Repository
-public interface ProductoRepository extends JpaRepository<Producto, Long>, 
-                                            JpaSpecificationExecutor<Producto> {
+public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
-    /**
-     * Buscar por código interno
-     */
-    Optional<Producto> findByCodigoInterno(String codigoInterno);
+    // ==================== BÚSQUEDA POR CÓDIGO INTERNO ====================
 
-    /**
-     * Buscar por código de barras
-     */
-    Optional<Producto> findByCodigoBarras(String codigoBarras);
-
-    /**
-     * Verificar si existe por código interno
-     */
     boolean existsByCodigoInterno(String codigoInterno);
 
-    /**
-     * Verificar si existe por código de barras
-     */
+    boolean existsByCodigoInternoAndIdNot(String codigoInterno, Long id);
+
+    // ==================== BÚSQUEDA POR CÓDIGO DE BARRAS ====================
+
     boolean existsByCodigoBarras(String codigoBarras);
 
-    /**
-     * Buscar productos activos
-     */
+    boolean existsByCodigoBarrasAndIdNot(String codigoBarras, Long id);
+
+    // ==================== LISTAR ACTIVOS ====================
+
     Page<Producto> findByActivoTrue(Pageable pageable);
 
-    /**
-     * Buscar productos por tipo
-     */
-    Page<Producto> findByTipo(String tipo, Pageable pageable);
+    List<Producto> findByActivoTrueOrderByNombreAsc();
+
+    // ==================== BÚSQUEDA RÁPIDA ====================
 
     /**
-     * Buscar productos activos por tipo
+     * Busca productos por código interno o nombre (case insensitive)
+     * Solo productos activos
      */
-    Page<Producto> findByActivoTrueAndTipo(String tipo, Pageable pageable);
+    @Query("SELECT p FROM Producto p WHERE p.activo = true AND " +
+        "(LOWER(p.codigoInterno) LIKE LOWER(CONCAT('%', :termino, '%')) OR " +
+        "LOWER(p.nombre) LIKE LOWER(CONCAT('%', :termino, '%')))")
+    List<Producto> buscarPorCodigoONombre(@Param("termino") String termino);
 
-    /**
-     * Buscar productos por zona de preparación
-     */
-    Page<Producto> findByZonaPreparacion(String zona, Pageable pageable);
+    // Versión alternativa con método generado (nombre largo pero funciona)
+    List<Producto> findByCodigoInternoContainingIgnoreCaseOrNombreContainingIgnoreCaseAndActivoTrue(
+        String codigoInterno, String nombre);
 
-    /**
-     * Buscar productos por nombre (parcial, case-insensitive)
-     */
-    @Query("""
-        SELECT p FROM Producto p 
-        WHERE LOWER(p.nombre) LIKE LOWER(CONCAT('%', :termino, '%'))
-        AND p.activo = true
-        ORDER BY p.nombre ASC
-        """)
-    List<Producto> buscarPorNombre(@Param("termino") String termino);
+    // ==================== BÚSQUEDA POR CATEGORÍA ====================
 
-    /**
-     * Buscar productos por código (interno o barras)
-     */
-    @Query("""
-        SELECT p FROM Producto p 
-        WHERE (LOWER(p.codigoInterno) LIKE LOWER(CONCAT('%', :termino, '%'))
-            OR LOWER(p.codigoBarras) LIKE LOWER(CONCAT('%', :termino, '%')))
-        AND p.activo = true
-        ORDER BY p.codigoInterno ASC
-        """)
-    List<Producto> buscarPorCodigo(@Param("termino") String termino);
+    @Query("SELECT p FROM Producto p JOIN p.categorias c WHERE c.id = :categoriaId AND p.activo = true")
+    Page<Producto> findByCategoriaId(@Param("categoriaId") Long categoriaId, Pageable pageable);
 
-    /**
-     * Buscar productos que requieren inventario
-     */
-    @Query("""
-        SELECT p FROM Producto p 
-        WHERE p.requiereInventario = true
-        AND p.tipoInventario = 'SIMPLE'
-        AND p.tipo IN ('VENTA', 'MIXTO', 'MATERIA_PRIMA')
-        AND p.activo = true
-        AND (LOWER(p.nombre) LIKE LOWER(CONCAT('%', :termino, '%'))
-            OR LOWER(p.codigoInterno) LIKE LOWER(CONCAT('%', :termino, '%')))
-        """)
-    Page<Producto> buscarParaInventario(@Param("termino") String termino, Pageable pageable);
+    // ==================== BÚSQUEDA POR TIPO ====================
 
-    /**
-     * Buscar productos por categoría
-     */
-    @Query("""
-        SELECT DISTINCT p FROM Producto p 
-        JOIN p.categorias c
-        WHERE c.id = :categoriaId
-        AND p.activo = true
-        """)
-    Page<Producto> buscarPorCategoria(@Param("categoriaId") Long categoriaId, Pageable pageable);
+    Page<Producto> findByTipoAndActivoTrue(TipoProducto tipo, Pageable pageable);
 
-    // ❌ ELIMINADO: buscarPorImpuesto() - No tenemos relación con impuestos
+    // ==================== PARA INVENTARIO ====================
 
-    /**
-     * Contar productos activos
-     */
-    long countByActivoTrue();
-
-    /**
-     * Contar productos por tipo
-     */
-    long countByTipo(String tipo);
-
-    /**
-     * Obtener código interno máximo para generar siguiente
-     */
-    @Query("""
-        SELECT p.codigoInterno FROM Producto p 
-        WHERE p.codigoInterno LIKE :prefix%
-        ORDER BY p.codigoInterno DESC
-        """)
-    List<String> findMaxCodigoInternoByPrefix(@Param("prefix") String prefix, Pageable pageable);
+    @Query("SELECT p FROM Producto p WHERE p.requiereInventario = true AND p.activo = true")
+    Page<Producto> findProductosParaInventario(Pageable pageable);
 }

@@ -34,9 +34,9 @@ public class ProductoImpuestoDTO {
         
         return ProductoImpuestoDTO.builder()
                 .id(entity.getId())
-                .productoId(entity.getProductoId())
-                .tipoImpuesto(entity.getTipoImpuesto())
-                .codigoTarifaIva(entity.getCodigoTarifaIva())
+                .productoId(entity.getProducto().getId())
+                .tipoImpuesto(entity.getTipoImpuesto().name())
+                .codigoTarifaIva(entity.getCodigoTarifaIva().getCodigo())
                 .porcentaje(entity.getPorcentaje())
                 .activo(entity.getActivo())
                 .build();

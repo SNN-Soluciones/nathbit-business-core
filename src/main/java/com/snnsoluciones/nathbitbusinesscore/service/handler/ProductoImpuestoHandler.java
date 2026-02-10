@@ -4,6 +4,8 @@ import com.snnsoluciones.nathbitbusinesscore.exception.BusinessException;
 import com.snnsoluciones.nathbitbusinesscore.model.dto.productos.CreateProductoImpuestoDTO;
 import com.snnsoluciones.nathbitbusinesscore.model.entity.Producto;
 import com.snnsoluciones.nathbitbusinesscore.model.entity.ProductoImpuesto;
+import com.snnsoluciones.nathbitbusinesscore.model.enums.mh.CodigoTarifaIVA;
+import com.snnsoluciones.nathbitbusinesscore.model.enums.mh.TipoImpuesto;
 import com.snnsoluciones.nathbitbusinesscore.repository.ProductoImpuestoRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,9 @@ public class ProductoImpuestoHandler {
     /**
      * Asigna impuestos a un producto (creación)
      */
+    /**
+     * Asigna impuestos a un producto (creación)
+     */
     public void asignarImpuestos(Producto producto, List<CreateProductoImpuestoDTO> impuestosDto) {
         if (impuestosDto == null || impuestosDto.isEmpty()) {
             log.debug("No hay impuestos para asignar al producto {}", producto.getCodigoInterno());
@@ -42,8 +47,8 @@ public class ProductoImpuestoHandler {
 
             ProductoImpuesto impuesto = ProductoImpuesto.builder()
                 .producto(producto)
-                .tipoImpuesto(ProductoImpuesto.TipoImpuesto.valueOf(dto.getTipoImpuesto()))
-                .codigoTarifaIva(dto.getCodigoTarifaIva())
+                .tipoImpuesto(TipoImpuesto.valueOf(dto.getTipoImpuesto()))
+                .codigoTarifaIva(CodigoTarifaIVA.valueOf(dto.getCodigoTarifaIva()))
                 .porcentaje(dto.getPorcentaje())
                 .activo(true)
                 .build();
@@ -51,7 +56,8 @@ public class ProductoImpuestoHandler {
             impuestos.add(impuesto);
         }
 
-        producto.setImpuestos(impuestos);
+        // ✅ Guardar directamente con el repository (sin producto.setImpuestos)
+        impuestoRepository.saveAll(impuestos);
 
         log.debug("✅ Impuestos asignados correctamente");
     }
@@ -75,8 +81,8 @@ public class ProductoImpuestoHandler {
 
                 ProductoImpuesto impuesto = ProductoImpuesto.builder()
                     .producto(producto)
-                    .tipoImpuesto(ProductoImpuesto.TipoImpuesto.valueOf(dto.getTipoImpuesto()))
-                    .codigoTarifaIva(dto.getCodigoTarifaIva())
+                    .tipoImpuesto(TipoImpuesto.valueOf(dto.getTipoImpuesto()))
+                    .codigoTarifaIva(CodigoTarifaIVA.valueOf(dto.getCodigoTarifaIva()))
                     .porcentaje(dto.getPorcentaje())
                     .activo(true)
                     .build();
