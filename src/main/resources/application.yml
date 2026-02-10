@@ -38,6 +38,16 @@ jwt:
   bearer-token:
     expiration: 3600000   # 1 hora
 
+
+storage:
+  spaces:
+    access-key: ${STORAGE_ACCESS_KEY:DO00R4XNBR36TTF3W8NV}
+    secret-key: ${STORAGE_SECRET_KEY:oYIJeiIPUMsdMSePeOgR4SA3RijgfW6JeVChNKjifOA}
+    endpoint: https://nyc3.digitaloceanspaces.com
+    region: nyc3
+    bucket: snn-soluciones
+    base-folder: NathBit-POS
+
 logging:
   level:
     root: INFO

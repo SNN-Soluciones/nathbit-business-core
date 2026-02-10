@@ -1,189 +1,58 @@
 package com.snnsoluciones.nathbitbusinesscore.service;
 
-import com.snnsoluciones.nathbitbusinesscore.context.TenantContext;
+import com.snnsoluciones.nathbitbusinesscore.exception.BusinessException;
 import com.snnsoluciones.nathbitbusinesscore.model.dto.productos.*;
-import com.snnsoluciones.nathbitbusinesscore.model.entity.CategoriaProducto;
 import com.snnsoluciones.nathbitbusinesscore.model.entity.Producto;
-import com.snnsoluciones.nathbitbusinesscore.model.entity.ProductoImpuesto;
-import com.snnsoluciones.nathbitbusinesscore.repository.CategoriaProductoRepository;
-import com.snnsoluciones.nathbitbusinesscore.repository.ProductoImpuestoRepository;
 import com.snnsoluciones.nathbitbusinesscore.repository.ProductoRepository;
-import com.snnsoluciones.nathbitbusinesscore.specification.ProductoSpecification;
+import com.snnsoluciones.nathbitbusinesscore.service.handler.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashSet;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Servicio para gestión de Productos.
- * Requiere tenant configurado en TenantContext.
+ * Servicio completo de productos con handlers integrados
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ProductoService {
 
+    // Repositories
     private final ProductoRepository productoRepository;
-    private final ProductoImpuestoRepository productoImpuestoRepository;
-    private final CategoriaProductoRepository categoriaProductoRepository;
 
-    // ==================== CONSULTAS ====================
+    // Handlers
+    private final ProductoValidador productoValidador;
+    private final ProductoCategoriaHandler categoriaHandler;
+    private final ProductoImpuestoHandler impuestoHandler;
+    private final ProductoImagenHandler imagenHandler;
+    private final ProductoTributacionHandler tributacionHandler;
 
-    /**
-     * Buscar productos con filtros avanzados
-     * 
-     * @param filtros Criterios de búsqueda
-     * @return Página de productos que cumplen los criterios
-     */
-    @Transactional(readOnly = true)
-    public Page<ProductoListDTO> buscarProductos(ProductoSearchDTO filtros) {
-        String tenant = TenantContext.getCurrentTenant();
-        log.info("Buscando productos para tenant: {} con filtros: {}", tenant, filtros);
-        
-        // Crear specification dinámica
-        Specification<Producto> spec = ProductoSpecification.crearBusqueda(filtros);
-        
-        // Configurar paginación y ordenamiento
-        Sort.Direction direction = "desc".equalsIgnoreCase(filtros.getSortDir())
-            ? Sort.Direction.DESC
-            : Sort.Direction.ASC;
-        
-        Pageable pageable = PageRequest.of(
-            filtros.getPage(),
-            filtros.getSize(),
-            Sort.by(direction, filtros.getSortBy())
-        );
-        
-        // Ejecutar búsqueda
-        Page<Producto> productos = productoRepository.findAll(spec, pageable);
-        
-        log.debug("Se encontraron {} productos", productos.getTotalElements());
-        
-        return productos.map(ProductoListDTO::fromEntity);
-    }
+    // ==================== CREAR ====================
 
     /**
-     * Obtener un producto por ID (completo con relaciones)
-     * 
-     * @param id ID del producto
-     * @return DTO completo del producto
-     */
-    @Transactional(readOnly = true)
-    public ProductoDTO obtenerProductoPorId(Long id) {
-        String tenant = TenantContext.getCurrentTenant();
-        log.info("Obteniendo producto con ID {} para tenant: {}", id, tenant);
-        
-        Producto producto = productoRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con ID: " + id));
-        
-        return ProductoDTO.fromEntity(producto);
-    }
-
-    /**
-     * Obtener productos activos (listado simple)
-     */
-    @Transactional(readOnly = true)
-    public Page<ProductoListDTO> obtenerProductosActivos(Pageable pageable) {
-        String tenant = TenantContext.getCurrentTenant();
-        log.info("Obteniendo productos activos para tenant: {}", tenant);
-        
-        Page<Producto> productos = productoRepository.findByActivoTrue(pageable);
-        
-        return productos.map(ProductoListDTO::fromEntity);
-    }
-
-    /**
-     * Buscar productos por nombre o código
-     */
-    @Transactional(readOnly = true)
-    public List<ProductoListDTO> buscarPorNombreOCodigo(String termino) {
-        String tenant = TenantContext.getCurrentTenant();
-        log.info("Buscando productos por término '{}' para tenant: {}", termino, tenant);
-        
-        if (termino == null || termino.trim().length() < 3) {
-            throw new IllegalArgumentException("El término de búsqueda debe tener al menos 3 caracteres");
-        }
-        
-        // Buscar por nombre
-        List<Producto> porNombre = productoRepository.buscarPorNombre(termino);
-        
-        // Buscar por código
-        List<Producto> porCodigo = productoRepository.buscarPorCodigo(termino);
-        
-        // Combinar resultados (sin duplicados)
-        Set<Producto> resultados = new HashSet<>();
-        resultados.addAll(porNombre);
-        resultados.addAll(porCodigo);
-        
-        log.debug("Se encontraron {} productos", resultados.size());
-        
-        return resultados.stream()
-            .map(ProductoListDTO::fromEntity)
-            .collect(Collectors.toList());
-    }
-
-    /**
-     * Buscar productos para asignar inventario inicial
-     */
-    @Transactional(readOnly = true)
-    public Page<ProductoListDTO> buscarParaInventario(String termino, Pageable pageable) {
-        String tenant = TenantContext.getCurrentTenant();
-        log.info("Buscando productos para inventario - tenant: {}, término: '{}'", tenant, termino);
-        
-        if (termino == null || termino.trim().length() < 3) {
-            throw new IllegalArgumentException("El término de búsqueda debe tener al menos 3 caracteres");
-        }
-        
-        Page<Producto> productos = productoRepository.buscarParaInventario(termino, pageable);
-        
-        log.debug("Se encontraron {} productos para inventario", productos.getTotalElements());
-        
-        return productos.map(ProductoListDTO::fromEntity);
-    }
-
-    /**
-     * Buscar productos por categoría
-     */
-    @Transactional(readOnly = true)
-    public Page<ProductoListDTO> buscarPorCategoria(Long categoriaId, Pageable pageable) {
-        String tenant = TenantContext.getCurrentTenant();
-        log.info("Buscando productos de categoría {} para tenant: {}", categoriaId, tenant);
-        
-        Page<Producto> productos = productoRepository.buscarPorCategoria(categoriaId, pageable);
-        
-        return productos.map(ProductoListDTO::fromEntity);
-    }
-
-    // ==================== CREACIÓN ====================
-
-    /**
-     * Crear un nuevo producto
+     * Crea un nuevo producto
      */
     @Transactional
     public ProductoDTO crearProducto(CreateProductoDTO dto) {
-        String tenant = TenantContext.getCurrentTenant();
-        log.info("Creando producto para tenant: {}", tenant);
-        
-        // Validar código único
-        if (productoRepository.existsByCodigoInterno(dto.getCodigoInterno())) {
-            throw new IllegalArgumentException("Ya existe un producto con el código interno: " + dto.getCodigoInterno());
-        }
-        
-        if (dto.getCodigoBarras() != null && productoRepository.existsByCodigoBarras(dto.getCodigoBarras())) {
-            throw new IllegalArgumentException("Ya existe un producto con el código de barras: " + dto.getCodigoBarras());
-        }
-        
-        // Crear entidad
+        log.info("📦 Creando producto: {}", dto.getCodigoInterno());
+
+        // 1️⃣ Validar datos
+        productoValidador.validarCreacion(dto);
+
+        // 2️⃣ Configurar impuestos según régimen tributario
+        tributacionHandler.configurarImpuestosSegunRegimen(dto);
+
+        // 3️⃣ Crear entidad
         Producto producto = Producto.builder()
             .codigoInterno(dto.getCodigoInterno())
             .codigoBarras(dto.getCodigoBarras())
@@ -191,16 +60,18 @@ public class ProductoService {
             .descripcion(dto.getDescripcion())
             .empresaCabysId(dto.getEmpresaCabysId())
             .familiaId(dto.getFamiliaId())
-            .tipo(dto.getTipo())
-            .tipoInventario(dto.getTipoInventario())
-            .zonaPreparacion(dto.getZonaPreparacion())
+            .tipo(Producto.TipoProducto.valueOf(dto.getTipo()))
+            .tipoInventario(Producto.TipoInventario.valueOf(dto.getTipoInventario()))
+            .zonaPreparacion(Producto.ZonaPreparacion.valueOf(dto.getZonaPreparacion()))
             .precioVenta(dto.getPrecioVenta())
             .precioBase(dto.getPrecioBase())
             .precioCompra(dto.getPrecioCompra())
-            .unidadMedida(dto.getUnidadMedida())
-            .moneda(dto.getMoneda())
-            .unidadMedidaCompra(dto.getUnidadMedidaCompra())
-            .unidadMedidaUso(dto.getUnidadMedidaUso())
+            .unidadMedida(Producto.UnidadMedida.valueOf(dto.getUnidadMedida()))
+            .moneda(Producto.Moneda.valueOf(dto.getMoneda()))
+            .unidadMedidaCompra(dto.getUnidadMedidaCompra() != null 
+                ? Producto.UnidadMedida.valueOf(dto.getUnidadMedidaCompra()) : null)
+            .unidadMedidaUso(dto.getUnidadMedidaUso() != null 
+                ? Producto.UnidadMedida.valueOf(dto.getUnidadMedidaUso()) : null)
             .factorConversion(dto.getFactorConversion())
             .factorConversionReceta(dto.getFactorConversionReceta())
             .esServicio(dto.getEsServicio())
@@ -210,158 +81,336 @@ public class ProductoService {
             .requierePersonalizacion(dto.getRequierePersonalizacion())
             .activo(true)
             .build();
-        
-        // Guardar producto
-        Producto saved = productoRepository.save(producto);
-        log.info("Producto creado con ID: {}", saved.getId());
-        
-        // Asignar categorías
-        if (dto.getCategoriasIds() != null && !dto.getCategoriasIds().isEmpty()) {
-            asignarCategorias(saved.getId(), dto.getCategoriasIds());
-        }
-        
-        // Asignar impuestos
-        if (dto.getImpuestos() != null && !dto.getImpuestos().isEmpty()) {
-            asignarImpuestos(saved.getId(), dto.getImpuestos());
-        }
-        
-        return ProductoDTO.fromEntity(productoRepository.findById(saved.getId()).orElseThrow());
+
+        // 4️⃣ Asignar categorías
+        categoriaHandler.asignarCategorias(producto, dto.getCategoriasIds());
+
+        // 5️⃣ Asignar impuestos
+        impuestoHandler.asignarImpuestos(producto, dto.getImpuestos());
+
+        // 6️⃣ Guardar producto
+        Producto guardado = productoRepository.save(producto);
+
+        log.info("✅ Producto creado con ID: {}", guardado.getId());
+
+        return convertirADto(guardado);
     }
 
-    // ==================== ACTUALIZACIÓN ====================
-
     /**
-     * Actualizar un producto existente
+     * Crea un producto con imagen
      */
     @Transactional
-    public ProductoDTO actualizarProducto(Long id, CreateProductoDTO dto) {
-        String tenant = TenantContext.getCurrentTenant();
-        log.info("Actualizando producto con ID {} para tenant: {}", id, tenant);
-        
+    public ProductoDTO crearProductoConImagen(CreateProductoDTO dto, MultipartFile imagen) {
+        log.info("📦📸 Creando producto con imagen: {}", dto.getCodigoInterno());
+
+        // Crear producto
+        ProductoDTO productoDto = crearProducto(dto);
+
+        // Subir imagen
+        Producto producto = productoRepository.findById(productoDto.getId())
+            .orElseThrow(() -> new BusinessException("Producto no encontrado"));
+
+        imagenHandler.subirImagen(producto, imagen);
+
+        return convertirADto(producto);
+    }
+
+    // ==================== ACTUALIZAR ====================
+
+    /**
+     * Actualiza un producto existente
+     */
+    @Transactional
+    public ProductoDTO actualizarProducto(Long id, UpdateProductoDTO dto) {
+        log.info("🔄 Actualizando producto ID: {}", id);
+
+        // 1️⃣ Validar datos
+        productoValidador.validarActualizacion(id, dto);
+
+        // 2️⃣ Obtener producto existente
         Producto producto = productoRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con ID: " + id));
-        
-        // Validar código único (excepto el producto actual)
-        if (!producto.getCodigoInterno().equals(dto.getCodigoInterno()) 
-            && productoRepository.existsByCodigoInterno(dto.getCodigoInterno())) {
-            throw new IllegalArgumentException("Ya existe otro producto con el código interno: " + dto.getCodigoInterno());
-        }
-        
-        // Actualizar campos
-        producto.setCodigoInterno(dto.getCodigoInterno());
-        producto.setCodigoBarras(dto.getCodigoBarras());
-        producto.setNombre(dto.getNombre());
-        producto.setDescripcion(dto.getDescripcion());
-        producto.setEmpresaCabysId(dto.getEmpresaCabysId());
-        producto.setFamiliaId(dto.getFamiliaId());
-        producto.setTipo(dto.getTipo());
-        producto.setTipoInventario(dto.getTipoInventario());
-        producto.setZonaPreparacion(dto.getZonaPreparacion());
-        producto.setPrecioVenta(dto.getPrecioVenta());
-        producto.setPrecioBase(dto.getPrecioBase());
-        producto.setPrecioCompra(dto.getPrecioCompra());
-        producto.setUnidadMedida(dto.getUnidadMedida());
-        producto.setMoneda(dto.getMoneda());
-        producto.setUnidadMedidaCompra(dto.getUnidadMedidaCompra());
-        producto.setUnidadMedidaUso(dto.getUnidadMedidaUso());
-        producto.setFactorConversion(dto.getFactorConversion());
-        producto.setFactorConversionReceta(dto.getFactorConversionReceta());
-        producto.setEsServicio(dto.getEsServicio());
-        producto.setIncluyeIva(dto.getIncluyeIva());
-        producto.setRequiereInventario(dto.getRequiereInventario());
-        producto.setRequiereReceta(dto.getRequiereReceta());
-        producto.setRequierePersonalizacion(dto.getRequierePersonalizacion());
-        
-        Producto updated = productoRepository.save(producto);
-        log.info("Producto actualizado exitosamente");
-        
-        // Actualizar categorías si vienen en el DTO
-        if (dto.getCategoriasIds() != null) {
-            producto.getCategorias().clear();
-            asignarCategorias(id, dto.getCategoriasIds());
-        }
-        
-        // Actualizar impuestos si vienen en el DTO
+            .orElseThrow(() -> new BusinessException("Producto no encontrado con ID: " + id));
+
+        // 3️⃣ Configurar impuestos según régimen (si cambió incluyeIva o impuestos)
         if (dto.getImpuestos() != null) {
-            productoImpuestoRepository.deleteByProductoId(id);
-            asignarImpuestos(id, dto.getImpuestos());
+            CreateProductoDTO dtoTemp = convertirUpdateACreate(dto, producto);
+            tributacionHandler.configurarImpuestosSegunRegimen(dtoTemp);
+            dto.setImpuestos(dtoTemp.getImpuestos());
+            dto.setIncluyeIva(dtoTemp.getIncluyeIva());
         }
-        
-        return ProductoDTO.fromEntity(productoRepository.findById(id).orElseThrow());
+
+        // 4️⃣ Actualizar campos básicos
+        actualizarCamposBasicos(producto, dto);
+
+        // 5️⃣ Actualizar categorías (si se especificaron)
+        if (dto.getCategoriasIds() != null) {
+            categoriaHandler.actualizarCategorias(producto, dto.getCategoriasIds());
+        }
+
+        // 6️⃣ Actualizar impuestos (si se especificaron)
+        if (dto.getImpuestos() != null) {
+            impuestoHandler.actualizarImpuestos(producto, dto.getImpuestos());
+        }
+
+        // 7️⃣ Guardar cambios
+        Producto actualizado = productoRepository.save(producto);
+
+        log.info("✅ Producto actualizado: {}", id);
+
+        return convertirADto(actualizado);
     }
 
     /**
-     * Activar/Desactivar un producto
+     * Actualiza solo la imagen del producto
      */
     @Transactional
-    public ProductoDTO cambiarEstadoProducto(Long id, Boolean activo) {
-        String tenant = TenantContext.getCurrentTenant();
-        log.info("Cambiando estado del producto {} a {} para tenant: {}", id, activo, tenant);
-        
+    public ProductoDTO actualizarImagen(Long id, MultipartFile imagen) {
+        log.info("📸 Actualizando imagen del producto ID: {}", id);
+
         Producto producto = productoRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con ID: " + id));
-        
+            .orElseThrow(() -> new BusinessException("Producto no encontrado con ID: " + id));
+
+        imagenHandler.actualizarImagen(producto, imagen);
+
+        return convertirADto(producto);
+    }
+
+    /**
+     * Elimina la imagen del producto
+     */
+    @Transactional
+    public ProductoDTO eliminarImagen(Long id) {
+        log.info("🗑️ Eliminando imagen del producto ID: {}", id);
+
+        Producto producto = productoRepository.findById(id)
+            .orElseThrow(() -> new BusinessException("Producto no encontrado con ID: " + id));
+
+        imagenHandler.eliminarImagen(producto);
+
+        return convertirADto(producto);
+    }
+
+    /**
+     * Cambia el estado de un producto (activo/inactivo)
+     */
+    @Transactional
+    public ProductoDTO cambiarEstado(Long id, boolean activo) {
+        log.info("🔄 Cambiando estado del producto ID: {} a {}", id, activo ? "ACTIVO" : "INACTIVO");
+
+        Producto producto = productoRepository.findById(id)
+            .orElseThrow(() -> new BusinessException("Producto no encontrado con ID: " + id));
+
         producto.setActivo(activo);
-        Producto updated = productoRepository.save(producto);
-        
-        log.info("Estado del producto actualizado exitosamente");
-        
-        return ProductoDTO.fromEntity(updated);
+        producto.setUpdatedAt(LocalDateTime.now());
+
+        Producto guardado = productoRepository.save(producto);
+
+        log.info("✅ Estado actualizado");
+
+        return convertirADto(guardado);
     }
 
-    // ==================== MÉTODOS AUXILIARES ====================
+    // ==================== ELIMINAR ====================
 
     /**
-     * Asignar categorías a un producto
+     * Elimina un producto (soft delete - marca como inactivo)
      */
-    private void asignarCategorias(Long productoId, List<Long> categoriasIds) {
-        Producto producto = productoRepository.findById(productoId).orElseThrow();
-        
-        Set<CategoriaProducto> categorias = categoriasIds.stream()
-            .map(catId -> categoriaProductoRepository.findById(catId)
-                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada con ID: " + catId)))
-            .collect(Collectors.toSet());
-        
-        producto.setCategorias(categorias);
+    @Transactional
+    public void eliminarProducto(Long id) {
+        log.info("🗑️ Eliminando producto ID: {}", id);
+
+        Producto producto = productoRepository.findById(id)
+            .orElseThrow(() -> new BusinessException("Producto no encontrado con ID: " + id));
+
+        // Soft delete
+        producto.setActivo(false);
         productoRepository.save(producto);
-        
-        log.debug("Asignadas {} categorías al producto {}", categorias.size(), productoId);
+
+        log.info("✅ Producto marcado como inactivo");
     }
 
-    /**
-     * Asignar impuestos a un producto
-     */
-    private void asignarImpuestos(Long productoId, List<CreateProductoImpuestoDTO> impuestosDto) {
-        List<ProductoImpuesto> impuestos = impuestosDto.stream()
-            .map(dto -> ProductoImpuesto.builder()
-                .productoId(productoId)
-                .tipoImpuesto(dto.getTipoImpuesto())
-                .codigoTarifaIva(dto.getCodigoTarifaIva())
-                .porcentaje(dto.getPorcentaje())
-                .activo(true)
-                .build())
-            .collect(Collectors.toList());
-        
-        productoImpuestoRepository.saveAll(impuestos);
-        
-        log.debug("Asignados {} impuestos al producto {}", impuestos.size(), productoId);
-    }
+    // ==================== CONSULTAS ====================
 
     /**
-     * Validar si un código está disponible
+     * Obtiene un producto por ID
      */
     @Transactional(readOnly = true)
-    public boolean validarCodigoDisponible(String codigo, Long productoId) {
-        if (productoId == null) {
-            // Nuevo producto
-            return !productoRepository.existsByCodigoInterno(codigo);
-        } else {
-            // Producto existente: verificar que no lo use otro
-            Producto producto = productoRepository.findById(productoId).orElse(null);
-            if (producto != null && producto.getCodigoInterno().equals(codigo)) {
-                return true; // Es su propio código
-            }
-            return !productoRepository.existsByCodigoInterno(codigo);
+    public ProductoDTO obtenerPorId(Long id) {
+        log.debug("🔍 Buscando producto ID: {}", id);
+
+        Producto producto = productoRepository.findById(id)
+            .orElseThrow(() -> new BusinessException("Producto no encontrado con ID: " + id));
+
+        return convertirADto(producto);
+    }
+
+    /**
+     * Lista todos los productos activos (paginado)
+     */
+    @Transactional(readOnly = true)
+    public ProductoPage listarActivos(int page, int size, String sortBy, String sortDir) {
+        log.debug("📋 Listando productos activos - page: {}, size: {}", page, size);
+
+        Sort sort = sortDir.equalsIgnoreCase("desc") 
+            ? Sort.by(sortBy).descending() 
+            : Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Producto> pageResult = productoRepository.findByActivoTrue(pageable);
+
+        return convertirAProductoPage(pageResult);
+    }
+
+    /**
+     * Lista todos los productos (paginado)
+     */
+    @Transactional(readOnly = true)
+    public ProductoPage listarTodos(int page, int size) {
+        log.debug("📋 Listando todos los productos - page: {}, size: {}", page, size);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("nombre").ascending());
+        Page<Producto> pageResult = productoRepository.findAll(pageable);
+
+        return convertirAProductoPage(pageResult);
+    }
+
+    /**
+     * Busca productos por término (código o nombre)
+     */
+    @Transactional(readOnly = true)
+    public List<ProductoListDTO> buscarRapido(String termino) {
+        log.debug("🔍 Búsqueda rápida: {}", termino);
+
+        if (termino == null || termino.trim().length() < 3) {
+            throw new BusinessException("El término de búsqueda debe tener al menos 3 caracteres");
         }
+
+        List<Producto> productos = productoRepository.findByCodigoInternoContainingIgnoreCaseOrNombreContainingIgnoreCaseAndActivoTrue(
+            termino, termino);
+
+        return productos.stream()
+            .map(this::convertirAListDto)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Valida disponibilidad de código
+     */
+    @Transactional(readOnly = true)
+    public boolean validarCodigo(String codigo, Long productoId) {
+        log.debug("🔍 Validando código: {}", codigo);
+
+        boolean existe = productoId != null
+            ? productoRepository.existsByCodigoInternoAndIdNot(codigo, productoId)
+            : productoRepository.existsByCodigoInterno(codigo);
+
+        return !existe; // Retorna true si está disponible
+    }
+
+    // ==================== CONVERSORES ====================
+
+    private ProductoDTO convertirADto(Producto producto) {
+        return ProductoDTO.builder()
+            .id(producto.getId())
+            .codigoInterno(producto.getCodigoInterno())
+            .codigoBarras(producto.getCodigoBarras())
+            .nombre(producto.getNombre())
+            .descripcion(producto.getDescripcion())
+            .empresaCabysId(producto.getEmpresaCabysId())
+            .familiaId(producto.getFamiliaId())
+            .tipo(producto.getTipo().name())
+            .tipoInventario(producto.getTipoInventario().name())
+            .zonaPreparacion(producto.getZonaPreparacion().name())
+            .precioVenta(producto.getPrecioVenta())
+            .precioBase(producto.getPrecioBase())
+            .precioCompra(producto.getPrecioCompra())
+            .ultimoPrecioCompra(producto.getUltimoPrecioCompra())
+            .unidadMedida(producto.getUnidadMedida().name())
+            .moneda(producto.getMoneda().name())
+            .unidadMedidaCompra(producto.getUnidadMedidaCompra() != null 
+                ? producto.getUnidadMedidaCompra().name() : null)
+            .unidadMedidaUso(producto.getUnidadMedidaUso() != null 
+                ? producto.getUnidadMedidaUso().name() : null)
+            .factorConversion(producto.getFactorConversion())
+            .factorConversionReceta(producto.getFactorConversionReceta())
+            .activo(producto.getActivo())
+            .esServicio(producto.getEsServicio())
+            .incluyeIva(producto.getIncluyeIva())
+            .requiereInventario(producto.getRequiereInventario())
+            .requiereReceta(producto.getRequiereReceta())
+            .requierePersonalizacion(producto.getRequierePersonalizacion())
+            .imagenUrl(producto.getImagenUrl())
+            .imagenKey(producto.getImagenKey())
+            .thumbnailUrl(producto.getThumbnailUrl())
+            .thumbnailKey(producto.getThumbnailKey())
+            .fechaUltimaCompra(producto.getFechaUltimaCompra())
+            .createdAt(producto.getCreatedAt())
+            .updatedAt(producto.getUpdatedAt())
+            .build();
+    }
+
+    private ProductoListDTO convertirAListDto(Producto producto) {
+        return ProductoListDTO.builder()
+            .id(producto.getId())
+            .codigoInterno(producto.getCodigoInterno())
+            .nombre(producto.getNombre())
+            .tipo(producto.getTipo().name())
+            .zonaPreparacion(producto.getZonaPreparacion().name())
+            .precioVenta(producto.getPrecioVenta())
+            .thumbnailUrl(producto.getThumbnailUrl())
+            .activo(producto.getActivo())
+            .requiereInventario(producto.getRequiereInventario())
+            .requiereReceta(producto.getRequiereReceta())
+            .build();
+    }
+
+    private ProductoPage convertirAProductoPage(Page<Producto> page) {
+        List<ProductoListDTO> productos = page.getContent().stream()
+            .map(this::convertirAListDto)
+            .collect(Collectors.toList());
+
+        return ProductoPage.builder()
+            .productos(productos)
+            .totalElements(page.getTotalElements())
+            .totalPages(page.getTotalPages())
+            .currentPage(page.getNumber())
+            .pageSize(page.getSize())
+            .build();
+    }
+
+    private void actualizarCamposBasicos(Producto producto, UpdateProductoDTO dto) {
+        if (dto.getCodigoInterno() != null) producto.setCodigoInterno(dto.getCodigoInterno());
+        if (dto.getCodigoBarras() != null) producto.setCodigoBarras(dto.getCodigoBarras());
+        if (dto.getNombre() != null) producto.setNombre(dto.getNombre());
+        if (dto.getDescripcion() != null) producto.setDescripcion(dto.getDescripcion());
+        if (dto.getEmpresaCabysId() != null) producto.setEmpresaCabysId(dto.getEmpresaCabysId());
+        if (dto.getFamiliaId() != null) producto.setFamiliaId(dto.getFamiliaId());
+        if (dto.getTipo() != null) producto.setTipo(Producto.TipoProducto.valueOf(dto.getTipo()));
+        if (dto.getTipoInventario() != null) producto.setTipoInventario(Producto.TipoInventario.valueOf(dto.getTipoInventario()));
+        if (dto.getZonaPreparacion() != null) producto.setZonaPreparacion(Producto.ZonaPreparacion.valueOf(dto.getZonaPreparacion()));
+        if (dto.getPrecioVenta() != null) producto.setPrecioVenta(dto.getPrecioVenta());
+        if (dto.getPrecioBase() != null) producto.setPrecioBase(dto.getPrecioBase());
+        if (dto.getPrecioCompra() != null) producto.setPrecioCompra(dto.getPrecioCompra());
+        if (dto.getUnidadMedida() != null) producto.setUnidadMedida(Producto.UnidadMedida.valueOf(dto.getUnidadMedida()));
+        if (dto.getMoneda() != null) producto.setMoneda(Producto.Moneda.valueOf(dto.getMoneda()));
+        if (dto.getUnidadMedidaCompra() != null) producto.setUnidadMedidaCompra(Producto.UnidadMedida.valueOf(dto.getUnidadMedidaCompra()));
+        if (dto.getUnidadMedidaUso() != null) producto.setUnidadMedidaUso(Producto.UnidadMedida.valueOf(dto.getUnidadMedidaUso()));
+        if (dto.getFactorConversion() != null) producto.setFactorConversion(dto.getFactorConversion());
+        if (dto.getFactorConversionReceta() != null) producto.setFactorConversionReceta(dto.getFactorConversionReceta());
+        if (dto.getEsServicio() != null) producto.setEsServicio(dto.getEsServicio());
+        if (dto.getIncluyeIva() != null) producto.setIncluyeIva(dto.getIncluyeIva());
+        if (dto.getRequiereInventario() != null) producto.setRequiereInventario(dto.getRequiereInventario());
+        if (dto.getRequiereReceta() != null) producto.setRequiereReceta(dto.getRequiereReceta());
+        if (dto.getRequierePersonalizacion() != null) producto.setRequierePersonalizacion(dto.getRequierePersonalizacion());
+
+        producto.setUpdatedAt(LocalDateTime.now());
+    }
+
+    private CreateProductoDTO convertirUpdateACreate(UpdateProductoDTO dto, Producto producto) {
+        return CreateProductoDTO.builder()
+            .codigoInterno(dto.getCodigoInterno() != null ? dto.getCodigoInterno() : producto.getCodigoInterno())
+            .incluyeIva(dto.getIncluyeIva() != null ? dto.getIncluyeIva() : producto.getIncluyeIva())
+            .impuestos(dto.getImpuestos())
+            .build();
     }
 }
