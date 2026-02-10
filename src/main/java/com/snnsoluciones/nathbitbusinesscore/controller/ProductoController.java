@@ -365,4 +365,42 @@ public class ProductoController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    /**
+     * GET /api/business/productos
+     * Listar productos con paginación simple (sin filtros)
+     */
+    @GetMapping
+    @Operation(summary = "Listar todos los productos activos")
+    public ResponseEntity<Page<ProductoListDTO>> listarProductos(
+        @Parameter(description = "Número de página (0-based)")
+        @RequestParam(defaultValue = "0") int page,
+
+        @Parameter(description = "Tamaño de página")
+        @RequestParam(defaultValue = "15") int size,
+
+        @Parameter(description = "Campo para ordenar")
+        @RequestParam(defaultValue = "nombre") String sortBy,
+
+        @Parameter(description = "Dirección de ordenamiento (asc/desc)")
+        @RequestParam(defaultValue = "asc") String sortDir) {
+
+        log.info("GET /productos - page: {}, size: {}", page, size);
+
+        try {
+            Sort.Direction direction = "desc".equalsIgnoreCase(sortDir)
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+            Page<ProductoListDTO> productos = productoService.obtenerProductosActivos(pageable);
+
+            return ResponseEntity.ok(productos);
+
+        } catch (Exception e) {
+            log.error("Error listando productos: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }
