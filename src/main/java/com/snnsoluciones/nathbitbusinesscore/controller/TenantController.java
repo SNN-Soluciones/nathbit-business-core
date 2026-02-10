@@ -22,6 +22,7 @@ public class TenantController {
     public ResponseEntity<TenantInfoDTO> obtenerInfo() {
         log.info("GET /api/tenant/info");
         TenantInfoDTO dto = tenantService.obtenerInfo();
+        log.info("Obteniendo info de tenant: {}", dto);
         return ResponseEntity.ok(dto);
     }
 
@@ -39,6 +40,7 @@ public class TenantController {
     public ResponseEntity<TenantConfiguracionDTO> obtenerConfiguracion() {
         log.info("GET /api/tenant/configuracion");
         TenantConfiguracionDTO dto = tenantService.obtenerConfiguracion();
+        log.info("Obteniendo configuracion de tenant: {}", dto);
         return ResponseEntity.ok(dto);
     }
 
