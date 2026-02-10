@@ -41,12 +41,13 @@ jwt:
 
 storage:
   spaces:
-    access-key: ${STORAGE_ACCESS_KEY:DO00R4XNBR36TTF3W8NV}
-    secret-key: ${STORAGE_SECRET_KEY:oYIJeiIPUMsdMSePeOgR4SA3RijgfW6JeVChNKjifOA}
+    access-key: DO00R4XNBR36TTF3W8NV
+    secret-key: oYIJeiIPUMsdMSePeOgR4SA3RijgfW6JeVChNKjifOA
     endpoint: https://nyc3.digitaloceanspaces.com
     region: nyc3
     bucket: snn-soluciones
     base-folder: NathBit-POS
+    cdn-url: https://snn-soluciones.nyc3.cdn.digitaloceanspaces.com
 
 logging:
   level:
